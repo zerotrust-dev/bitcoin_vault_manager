@@ -43,7 +43,30 @@ class _PublishVaultScreenState extends ConsumerState<PublishVaultScreen> {
                   ],
                 ),
               )
-            : state.isFunded
+            : state.error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          state.error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => ref
+                              .read(onboardingProvider.notifier)
+                              .publishVault(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : state.isFunded
                 ? _fundedView(context: context)
                 : SingleChildScrollView(
                     child: Column(

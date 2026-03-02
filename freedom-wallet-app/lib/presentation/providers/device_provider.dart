@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freedom_wallet/data/mock/mock_device_service.dart';
+import 'package:freedom_wallet/domain/interfaces/device_service.dart';
 import 'package:freedom_wallet/domain/models/device.dart';
 
-final deviceServiceProvider = Provider((ref) => MockDeviceService());
+// Device service stays mocked until Phase 3 (hardware wallet integration)
+final deviceServiceProvider = Provider<DeviceService>((ref) => MockDeviceService());
 
 final pairedDeviceProvider =
     StateNotifierProvider<PairedDeviceNotifier, AsyncValue<DeviceInfo?>>(
@@ -10,7 +12,7 @@ final pairedDeviceProvider =
 );
 
 class PairedDeviceNotifier extends StateNotifier<AsyncValue<DeviceInfo?>> {
-  final MockDeviceService _service;
+  final DeviceService _service;
 
   PairedDeviceNotifier(this._service)
       : super(const AsyncValue.data(null));

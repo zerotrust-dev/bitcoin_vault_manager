@@ -1,19 +1,23 @@
 import 'package:freedom_wallet/data/mock/mock_data.dart';
+import 'package:freedom_wallet/domain/interfaces/vault_service.dart';
 import 'package:freedom_wallet/domain/models/vault.dart';
 
-class MockVaultService {
+class MockVaultService implements VaultService {
   List<Vault> _vaults = List.from(MockData.allVaults);
 
+  @override
   Future<List<Vault>> getVaults() async {
     await Future.delayed(const Duration(milliseconds: 300));
     return List.unmodifiable(_vaults);
   }
 
+  @override
   Future<Vault> getVault(String id) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return _vaults.firstWhere((v) => v.id == id);
   }
 
+  @override
   Future<Vault> createVault({
     required String name,
     required VaultTemplate template,
@@ -40,6 +44,7 @@ class MockVaultService {
     return vault;
   }
 
+  @override
   Future<void> simulateFunding(String vaultId, int amountSats) async {
     await Future.delayed(const Duration(seconds: 2));
     _vaults = _vaults.map((v) {
@@ -54,6 +59,7 @@ class MockVaultService {
     }).toList();
   }
 
+  @override
   int get totalBalanceSats =>
       _vaults.fold(0, (sum, v) => sum + v.balanceSats);
 }

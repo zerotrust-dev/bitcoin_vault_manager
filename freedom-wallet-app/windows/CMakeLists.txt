@@ -87,6 +87,14 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
+# Copy vault-core Rust library (FFI bridge to Bitcoin operations).
+set(VAULT_CORE_DLL "${CMAKE_CURRENT_SOURCE_DIR}/../../vault-core/target/release/vault_core.dll")
+if(EXISTS "${VAULT_CORE_DLL}")
+  install(FILES "${VAULT_CORE_DLL}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"

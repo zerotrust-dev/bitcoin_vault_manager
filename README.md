@@ -80,7 +80,17 @@ bitcoin_vault_manager/
 │       ├── vault/mod.rs        # Core types (Network, VaultTemplate, etc.)
 │       ├── keys/mod.rs         # Key derivation (Phase 2)
 │       └── taproot/mod.rs      # Address generation (Phase 2)
-├── freedom-wallet-app/         # Flutter application (Phase 1)
+├── freedom-wallet-app/         # Flutter application
+│   └── lib/
+│       ├── data/
+│       │   ├── datasources/    # Rust FFI bridge (Phase 2)
+│       │   ├── local/          # Secure local storage (Phase 2)
+│       │   ├── mock/           # Mock services for development
+│       │   └── services/       # Real service implementations (Phase 2)
+│       ├── domain/
+│       │   ├── interfaces/     # Service abstractions (Phase 2)
+│       │   └── models/         # Domain models
+│       └── presentation/       # Screens, widgets, providers
 └── README.md
 ```
 
@@ -103,24 +113,30 @@ This produces the native library (`vault_core.dll` / `libvault_core.so` / `libva
 
 ## Current Status
 
-**Phase:** Foundation (Pre-Phase 1)
+**Phase:** Post-Phase 2 (Rust core fully integrated)
 
 ### Implemented
 
 - Complete design specification (10 documents)
-- vault-core Rust library foundation:
-  - Core types: `Network`, `VaultTemplate`, `VaultMetadata`, `RecoveryType`
-  - FFI exports: `vault_version()`, `vault_init()`, `free_rust_string()`
+- vault-core Rust library (14 FFI exports, 37 tests passing):
+  - Key derivation: BIP86 paths, xpub validation, child pubkey derivation
+  - Taproot addresses: P2TR generation with spending script + metadata leaf
+  - PSBT construction: delayed spend (CSV timelock) and emergency (key-path)
+  - Policy verification, PSBT finalization, metadata encoding/decoding
   - Error system with structured error codes
-  - Binary metadata encoding/decoding
-  - Unit tests passing
+- Flutter app with full UI and Rust FFI integration:
+  - Dart FFI bridge binding all 14 Rust functions
+  - Service abstraction layer (interfaces + mock/real implementations)
+  - Real Taproot address generation in onboarding flow
+  - Local vault persistence via secure storage
+  - Toggle between mock and real services for development
 
 ### Roadmap
 
 | Phase | Focus | Status |
 |-------|-------|--------|
 | Phase 1 | Flutter UI with mocks | **Complete** |
-| Phase 2 | Rust core integration (addresses, PSBT) | **In progress** |
+| Phase 2 | Rust core integration (addresses, PSBT) | **Complete** |
 | Phase 3 | Hardware wallet integration | Not started |
 | Phase 4 | Watcher service | Not started |
 | Phase 5 | Recovery system | Not started |

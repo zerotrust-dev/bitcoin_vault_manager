@@ -1,8 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freedom_wallet/data/datasources/rust_ffi_datasource.dart';
 import 'package:freedom_wallet/data/mock/mock_vault_service.dart';
+import 'package:freedom_wallet/data/services/rust_vault_service.dart';
+import 'package:freedom_wallet/domain/interfaces/vault_service.dart';
 import 'package:freedom_wallet/domain/models/vault.dart';
 
-final vaultServiceProvider = Provider((ref) => MockVaultService());
+/// Set to true to use mock services instead of real Rust FFI.
+/// Useful for UI development without the native library.
+const bool useMocks = false;
+
+final rustFfiProvider = Provider<RustFfi>((ref) {
+  final ffi = RustFfi.instance;
+  ffi.initialize(Network.testnet.index);
+  return ffi;
+});
+
+final vaultServiceProvider = Provider<VaultService>((ref) {
+  if (useMocks) {
+    return MockVaultService();
+  }
+  final ffi = ref.watch(rustFfiProvider);
+  return RustVaultService(ffi: ffi);
+});
 
 final vaultsProvider = FutureProvider<List<Vault>>((ref) async {
   final service = ref.watch(vaultServiceProvider);
