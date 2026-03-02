@@ -120,7 +120,7 @@ This produces the native library (`vault_core.dll` / `libvault_core.so` / `libva
 | Phase | Focus | Status |
 |-------|-------|--------|
 | Phase 1 | Flutter UI with mocks | Not started |
-| Phase 2 | Rust core integration (addresses, PSBT) | Not started |
+| Phase 2 | Rust core integration (addresses, PSBT) | **In progress** |
 | Phase 3 | Hardware wallet integration | Not started |
 | Phase 4 | Watcher service | Not started |
 | Phase 5 | Recovery system | Not started |
