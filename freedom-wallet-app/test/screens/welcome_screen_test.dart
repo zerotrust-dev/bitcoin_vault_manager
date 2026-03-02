@@ -1,12 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:freedom_wallet/app/app.dart';
+import 'package:freedom_wallet/presentation/features/onboarding/welcome_screen.dart';
 
 void main() {
-  testWidgets('App renders Welcome screen', (WidgetTester tester) async {
+  testWidgets('WelcomeScreen shows title and buttons', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: FreedomWalletApp(),
+        child: MaterialApp(home: WelcomeScreen()),
       ),
     );
 
@@ -17,5 +18,6 @@ void main() {
     );
     expect(find.text('Set up my vault'), findsOneWidget);
     expect(find.text('I already have a vault'), findsOneWidget);
+    expect(find.text('v0.1.0 · Testnet'), findsOneWidget);
   });
 }
