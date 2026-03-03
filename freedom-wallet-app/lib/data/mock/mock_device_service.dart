@@ -23,4 +23,9 @@ class MockDeviceService implements DeviceService {
     await Future.delayed(const Duration(seconds: 3));
     return psbtBase64; // Return "signed" PSBT
   }
+
+  @override
+  Future<void> displayAddress(String address, String deviceFingerprint) async {
+    await Future.delayed(const Duration(seconds: 2));
+  }
 }

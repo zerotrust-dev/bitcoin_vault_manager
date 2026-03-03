@@ -127,8 +127,9 @@ class Vault {
 class DeviceRef {
   final String fingerprint;
   final String name;
+  final String? xpub;
 
-  const DeviceRef({required this.fingerprint, required this.name});
+  const DeviceRef({required this.fingerprint, required this.name, this.xpub});
 }
 
 class PendingTransactionRef {

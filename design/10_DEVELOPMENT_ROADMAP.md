@@ -8,45 +8,45 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 
 ## Phase Summary
 
-| Phase | Duration | Focus | Deliverable |
-|-------|----------|-------|-------------|
-| Phase 1 | 2 weeks | Foundation | Clickable prototype with mocks |
-| Phase 2 | 3 weeks | Core Integration | Rust FFI working, real addresses |
-| Phase 3 | 3 weeks | Hardware Wallet | Device pairing and signing |
-| Phase 4 | 2 weeks | Blockchain | Watcher integration, monitoring |
-| Phase 5 | 2 weeks | Recovery | Blockchain scanning, reconstruction |
-| Phase 6 | 2 weeks | Polish | Testing, UX refinement, security audit |
+| Phase | Duration | Focus | Deliverable | Status |
+|-------|----------|-------|-------------|--------|
+| Phase 1 | 2 weeks | Foundation | Clickable prototype with mocks | **Complete** |
+| Phase 2 | 3 weeks | Core Integration | Rust FFI working, real addresses | **Complete** |
+| Phase 3 | 3 weeks | Hardware Wallet | Device pairing and signing | **Complete** |
+| Phase 4 | 2 weeks | Blockchain | Watcher integration, monitoring | Not started |
+| Phase 5 | 2 weeks | Recovery | Blockchain scanning, reconstruction | Not started |
+| Phase 6 | 2 weeks | Polish | Testing, UX refinement, security audit | Not started |
 
 **Total: ~14 weeks to production MVP**
 
 ---
 
-## Phase 1: Foundation (Weeks 1-2)
+## Phase 1: Foundation (Weeks 1-2) — COMPLETE
 
 **Goal:** Build complete UI/UX with mocked backend
 
 ### Week 1: Project Setup & Core Screens
 
-- [ ] Initialize Flutter project structure
-- [ ] Configure dependencies (Riverpod, GoRouter, etc.)
-- [ ] Implement theme and design system
-- [ ] Create mock service interfaces
-- [ ] Build screens:
-  - [ ] Welcome screen
-  - [ ] Pair device screen (mocked)
-  - [ ] Template selection screen
-  - [ ] Publish vault screen
+- [x] Initialize Flutter project structure
+- [x] Configure dependencies (Riverpod, GoRouter, etc.)
+- [x] Implement theme and design system
+- [x] Create mock service interfaces
+- [x] Build screens:
+  - [x] Welcome screen
+  - [x] Pair device screen (mocked)
+  - [x] Template selection screen
+  - [x] Publish vault screen
 
 ### Week 2: Dashboard & Flows
 
-- [ ] Build screens:
-  - [ ] Dashboard
-  - [ ] Vault detail
-  - [ ] Spend wizard
-  - [ ] Backup center
-- [ ] Implement navigation flows
-- [ ] Add mock data generators
-- [ ] Write widget tests for all screens
+- [x] Build screens:
+  - [x] Dashboard
+  - [x] Vault detail
+  - [x] Spend wizard
+  - [x] Backup center
+- [x] Implement navigation flows
+- [x] Add mock data generators
+- [x] Write widget tests for all screens
 
 ### Deliverables
 - Clickable prototype running on desktop/mobile
@@ -55,87 +55,102 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 
 ---
 
-## Phase 2: Rust Core Integration (Weeks 3-5)
+## Phase 2: Rust Core Integration (Weeks 3-5) — COMPLETE
 
 **Goal:** Replace mocks with real Rust cryptographic operations
 
 ### Week 3: Rust Project Setup
 
-- [ ] Initialize Rust library structure
-- [ ] Add dependencies (bdk, bitcoin, serde)
-- [ ] Implement FFI string helpers
-- [ ] Create basic types:
-  - [ ] Network enum
-  - [ ] VaultTemplate struct
-  - [ ] VaultMetadata struct
-- [ ] Build desktop library (.dll/.so/.dylib)
-- [ ] Connect Flutter FFI bridge (version check)
+- [x] Initialize Rust library structure
+- [x] Add dependencies (bdk, bitcoin, serde)
+- [x] Implement FFI string helpers
+- [x] Create basic types:
+  - [x] Network enum
+  - [x] VaultTemplate struct
+  - [x] VaultMetadata struct
+- [x] Build desktop library (.dll/.so/.dylib)
+- [x] Connect Flutter FFI bridge (version check)
 
 ### Week 4: Address Generation
 
-- [ ] Implement key derivation from xpub
-- [ ] Build Taproot address generation
-- [ ] Implement metadata encoding in script leaf
-- [ ] Add descriptor generation
-- [ ] FFI functions:
-  - [ ] `generate_vault_address`
-  - [ ] `decode_metadata_leaf`
-  - [ ] `validate_address`
-- [ ] Unit tests for address generation
+- [x] Implement key derivation from xpub
+- [x] Build Taproot address generation
+- [x] Implement metadata encoding in script leaf
+- [x] Add descriptor generation
+- [x] FFI functions:
+  - [x] `generate_vault_address`
+  - [x] `decode_metadata_leaf`
+  - [x] `validate_address`
+- [x] Unit tests for address generation
 
 ### Week 5: Transaction Building
 
-- [ ] Implement PSBT construction
-- [ ] Add CSV delay scripts
-- [ ] Implement emergency (key-path) spend
-- [ ] Add fee calculation
-- [ ] FFI functions:
-  - [ ] `build_delayed_spend_psbt`
-  - [ ] `build_emergency_psbt`
-  - [ ] `verify_psbt_policy`
-  - [ ] `finalize_psbt`
-- [ ] Integration tests for transaction flows
+- [x] Implement PSBT construction
+- [x] Add CSV delay scripts
+- [x] Implement emergency (key-path) spend
+- [x] Add fee calculation
+- [x] FFI functions:
+  - [x] `build_delayed_spend_psbt`
+  - [x] `build_emergency_psbt`
+  - [x] `verify_psbt_policy`
+  - [x] `finalize_psbt`
+- [x] Integration tests for transaction flows
 
 ### Deliverables
-- Rust library generating real Taproot addresses
+- Rust library generating real Taproot addresses (14 FFI exports, 37 tests)
 - PSBT construction working
 - Flutter app using Rust core via FFI
 
 ---
 
-## Phase 3: Hardware Wallet Integration (Weeks 6-8)
+## Phase 3: Hardware Wallet Integration (Weeks 6-8) — COMPLETE
 
 **Goal:** Real hardware wallet pairing and signing
 
+**Implementation:** Trezor Bridge HTTP API (localhost:21325) with DeviceDriver abstraction layer.
+
 ### Week 6: Device Communication Foundation
 
-- [ ] Research HWI/device protocols
-- [ ] Implement device discovery:
-  - [ ] USB enumeration
-  - [ ] BLE scanning
-- [ ] Create device abstraction layer
-- [ ] Build Trezor driver (first target)
+- [x] Research HWI/device protocols (chose Trezor Bridge HTTP API)
+- [x] Implement device discovery:
+  - [x] USB enumeration (via Trezor Bridge)
+  - [ ] BLE scanning (deferred — Trezor Safe 5 BLE support planned)
+- [x] Create device abstraction layer (`DeviceDriver` / `DeviceSession`)
+- [x] Build Trezor driver (first target)
 
 ### Week 7: Pairing & Key Export
 
-- [ ] Implement xpub export from device
-- [ ] Add device fingerprint extraction
-- [ ] Build WYSIWYS address display flow
-- [ ] Handle connection state management
-- [ ] Add reconnection logic
+- [x] Implement xpub export from device (`GetPublicKey` with BIP86 path)
+- [x] Add device fingerprint extraction
+- [x] Build WYSIWYS address display flow (`displayAddress` via `GetAddress`)
+- [x] Handle connection state management (`DeviceConnectionStatus` provider)
+- [x] Add device persistence (`DeviceStorage` with `FlutterSecureStorage`)
+- [x] Fix xpub bug in `DeviceRef` / `RustVaultService`
 
 ### Week 8: Signing
 
-- [ ] Implement PSBT signing via device
-- [ ] Add progress indicators for device operations
-- [ ] Handle multi-round signing if needed
-- [ ] Test with real Trezor on testnet
-- [ ] Document supported devices
+- [x] Implement PSBT signing via device (`signPsbt` on `TrezorSession`)
+- [x] Add progress indicators for device operations
+- [x] Wire spend wizard with real PSBT build → device sign → finalize flow
+- [x] Add manual UTXO input for testnet (txid:vout:amount_sats format)
+- [x] Add typed error handling (`DeviceException` hierarchy, 7 error types)
+- [x] Write 20 unit tests (TrezorBridgeClient, TrezorDriver, HardwareDeviceService)
+- [ ] Test with real Trezor on testnet (requires Trezor hardware)
 
 ### Deliverables
-- Trezor integration working
-- Create vault → fund → spend flow on testnet
-- Device communication robust
+- Trezor integration working via Trezor Bridge HTTP API
+- `DeviceDriver` abstraction ready for Ledger/Coldcard drivers
+- Create vault → fund → spend flow wired with real PSBT + device signing
+- Device communication with typed errors and connection state management
+- 20 Phase 3 tests passing
+
+### Key Files Added
+- `lib/data/services/trezor_bridge_service.dart` — Trezor Bridge HTTP client
+- `lib/data/services/device_drivers/device_driver.dart` — Abstract driver interface
+- `lib/data/services/device_drivers/trezor_driver.dart` — Trezor implementation
+- `lib/data/services/hardware_device_service.dart` — Real `DeviceService`
+- `lib/data/local/device_storage.dart` — Encrypted device persistence
+- `lib/domain/errors/device_errors.dart` — Typed exception hierarchy
 
 ---
 

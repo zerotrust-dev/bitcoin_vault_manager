@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:freedom_wallet/presentation/providers/device_provider.dart';
 import 'package:freedom_wallet/presentation/providers/onboarding_provider.dart';
 
 class PublishVaultScreen extends ConsumerStatefulWidget {
@@ -13,13 +14,17 @@ class PublishVaultScreen extends ConsumerStatefulWidget {
 
 class _PublishVaultScreenState extends ConsumerState<PublishVaultScreen> {
   bool _deviceVerified = false;
+  bool _verifying = false;
 
   @override
   void initState() {
     super.initState();
-    // Generate address on screen load
+    // Generate address on screen load, using real xpub from paired device
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(onboardingProvider.notifier).publishVault();
+      final pairedDevice = ref.read(pairedDeviceProvider).valueOrNull;
+      ref.read(onboardingProvider.notifier).publishVault(
+            primaryXpub: pairedDevice?.xpub,
+          );
     });
   }
 
@@ -139,14 +144,51 @@ class _PublishVaultScreenState extends ConsumerState<PublishVaultScreen> {
                                 label: const Text('Copy'),
                               ),
                               const SizedBox(width: 12),
-                              if (!_deviceVerified)
+                              if (!_deviceVerified && !_verifying)
                                 OutlinedButton.icon(
-                                  onPressed: () {
-                                    setState(() => _deviceVerified = true);
+                                  onPressed: () async {
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    setState(() => _verifying = true);
+                                    try {
+                                      await ref
+                                          .read(pairedDeviceProvider.notifier)
+                                          .verifyOnDevice(
+                                              state.generatedAddress!);
+                                      if (mounted) {
+                                        setState(() {
+                                          _deviceVerified = true;
+                                          _verifying = false;
+                                        });
+                                      }
+                                    } catch (_) {
+                                      if (mounted) {
+                                        setState(() => _verifying = false);
+                                        messenger
+                                            .showSnackBar(const SnackBar(
+                                          content: Text(
+                                              'Device verification failed. Try again.'),
+                                        ));
+                                      }
+                                    }
                                   },
                                   icon:
                                       const Icon(Icons.fingerprint, size: 16),
                                   label: const Text('Verify on Device'),
+                                ),
+                              if (_verifying)
+                                const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Check your device...'),
+                                  ],
                                 ),
                               if (_deviceVerified)
                                 Chip(

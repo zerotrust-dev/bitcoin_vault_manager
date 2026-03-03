@@ -49,8 +49,10 @@ class VaultStorage {
         'status': v.status.index,
         'primary_device_fingerprint': v.primaryDevice.fingerprint,
         'primary_device_name': v.primaryDevice.name,
+        'primary_device_xpub': v.primaryDevice.xpub,
         'emergency_device_fingerprint': v.emergencyDevice?.fingerprint,
         'emergency_device_name': v.emergencyDevice?.name,
+        'emergency_device_xpub': v.emergencyDevice?.xpub,
         'network': v.network.index,
         'created_at': v.createdAt.toIso8601String(),
         'last_activity_at': v.lastActivityAt?.toIso8601String(),
@@ -75,11 +77,13 @@ class VaultStorage {
       primaryDevice: DeviceRef(
         fingerprint: j['primary_device_fingerprint'] as String,
         name: j['primary_device_name'] as String,
+        xpub: j['primary_device_xpub'] as String?,
       ),
       emergencyDevice: j['emergency_device_fingerprint'] != null
           ? DeviceRef(
               fingerprint: j['emergency_device_fingerprint'] as String,
               name: j['emergency_device_name'] as String,
+              xpub: j['emergency_device_xpub'] as String?,
             )
           : null,
       network: Network.values[j['network'] as int],

@@ -49,8 +49,8 @@ class RustVaultService implements VaultService {
 
     // Call Rust core to generate a real Taproot address
     final result = _ffi.generateVaultAddress(
-      primaryXpub: primaryDevice.fingerprint, // In Phase 3, this becomes real xpub from device
-      emergencyXpub: emergencyDevice?.fingerprint,
+      primaryXpub: primaryDevice.xpub ?? primaryDevice.fingerprint,
+      emergencyXpub: emergencyDevice?.xpub ?? emergencyDevice?.fingerprint,
       template: rustTemplate,
       vaultIndex: _nextVaultIndex,
       network: networkInt,

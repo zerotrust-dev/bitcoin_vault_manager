@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:freedom_wallet/domain/errors/device_errors.dart';
 import 'package:freedom_wallet/domain/models/device.dart';
 import 'package:freedom_wallet/presentation/providers/device_provider.dart';
 import 'package:freedom_wallet/presentation/common/widgets/device_card.dart';
@@ -103,8 +104,31 @@ class _PairDeviceScreenState extends ConsumerState<PairDeviceScreen> {
                   ),
                 ),
                 error: (e, _) => Center(
-                  child: Text('Error: $e',
-                      style: const TextStyle(color: Colors.red)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        e is TrezorBridgeUnavailableException
+                            ? Icons.cloud_off
+                            : Icons.error_outline,
+                        size: 48,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage(e),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            ref.read(pairedDeviceProvider.notifier).reset(),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -123,6 +147,25 @@ class _PairDeviceScreenState extends ConsumerState<PairDeviceScreen> {
         ),
       ),
     );
+  }
+
+  String _errorMessage(Object e) {
+    if (e is TrezorBridgeUnavailableException) {
+      return 'Trezor Bridge is not running.\nPlease start Trezor Suite.';
+    }
+    if (e is DeviceNotFoundException) {
+      return 'No device found.\nCheck your USB connection and try again.';
+    }
+    if (e is DeviceTaprootUnsupportedException) {
+      return 'Your device firmware is too old.\nUpdate to 2.4.0 or later for Taproot support.';
+    }
+    if (e is DeviceLockedError) {
+      return 'Your device is locked.\nEnter your PIN on the device and try again.';
+    }
+    if (e is DeviceException) {
+      return e.message;
+    }
+    return 'Error: $e';
   }
 }
 
