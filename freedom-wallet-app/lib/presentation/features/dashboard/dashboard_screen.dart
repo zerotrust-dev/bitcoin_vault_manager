@@ -3,17 +3,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:freedom_wallet/presentation/providers/vault_provider.dart';
 import 'package:freedom_wallet/presentation/providers/alert_provider.dart';
+import 'package:freedom_wallet/presentation/providers/watcher_provider.dart';
 import 'package:freedom_wallet/presentation/common/widgets/vault_card.dart';
 import 'package:freedom_wallet/presentation/features/dashboard/widgets/balance_header.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Start polling when dashboard loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(vaultMonitorProvider.notifier).startPolling();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(vaultMonitorProvider.notifier).startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      ref.read(vaultMonitorProvider.notifier).stopPolling();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final vaultsAsync = ref.watch(vaultsProvider);
     final totalBalance = ref.watch(totalBalanceProvider);
     final alertCount = ref.watch(unacknowledgedCountProvider);
+    final monitorState = ref.watch(vaultMonitorProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -41,17 +74,27 @@ class DashboardScreen extends ConsumerWidget {
       body: Column(
         children: [
           BalanceHeader(totalSats: totalBalance),
+          // Last updated indicator
+          if (monitorState.lastChecked != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                'Updated ${_timeAgo(monitorState.lastChecked!)}',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+            ),
           // Quick actions
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      // Would navigate to receive flow
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Receive flow coming soon')),
+                        const SnackBar(
+                            content: Text('Receive flow coming soon')),
                       );
                     },
                     icon: const Icon(Icons.call_received, size: 18),
@@ -92,7 +135,8 @@ class DashboardScreen extends ConsumerWidget {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Text('Error: $e',
                     style: const TextStyle(color: Colors.red)),
@@ -106,5 +150,13 @@ class DashboardScreen extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  String _timeAgo(DateTime timestamp) {
+    final diff = DateTime.now().difference(timestamp);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }

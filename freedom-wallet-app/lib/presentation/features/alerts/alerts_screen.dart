@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:freedom_wallet/domain/models/alert.dart';
 import 'package:freedom_wallet/presentation/providers/alert_provider.dart';
 
@@ -44,13 +45,13 @@ class AlertsScreen extends ConsumerWidget {
   }
 }
 
-class _AlertCard extends StatelessWidget {
+class _AlertCard extends ConsumerWidget {
   final Alert alert;
 
   const _AlertCard({required this.alert});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final (color, icon) = switch (alert.severity) {
       AlertSeverity.critical => (Colors.red, Icons.warning),
       AlertSeverity.warning => (Colors.orange, Icons.info),
@@ -102,23 +103,9 @@ class _AlertCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: alert.actions.map((action) {
-                  final isDestructive =
-                      action.type == AlertActionType.cancelTransaction;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: isDestructive
-                        ? OutlinedButton(
-                            onPressed: () {},
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
-                            ),
-                            child: Text(action.label),
-                          )
-                        : ElevatedButton(
-                            onPressed: () {},
-                            child: Text(action.label),
-                          ),
+                    child: _buildActionButton(context, ref, action),
                   );
                 }).toList(),
               ),
@@ -137,6 +124,82 @@ class _AlertCard extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+      BuildContext context, WidgetRef ref, AlertAction action) {
+    switch (action.type) {
+      case AlertActionType.dismiss:
+        return ElevatedButton(
+          onPressed: () => _acknowledge(ref),
+          child: Text(action.label),
+        );
+      case AlertActionType.viewDetails:
+        return ElevatedButton(
+          onPressed: () => context.go('/spend/${alert.vaultId}'),
+          child: Text(action.label),
+        );
+      case AlertActionType.cancelTransaction:
+        return OutlinedButton(
+          onPressed: () => _showCancelConfirmation(context, ref),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
+          ),
+          child: Text(action.label),
+        );
+      case AlertActionType.emergencyRecovery:
+        return OutlinedButton(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Emergency recovery coming in Phase 5')),
+            );
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
+          ),
+          child: Text(action.label),
+        );
+    }
+  }
+
+  void _acknowledge(WidgetRef ref) {
+    final service = ref.read(alertServiceProvider);
+    service.acknowledgeAlert(alert.id);
+    ref.invalidate(alertsProvider);
+  }
+
+  void _showCancelConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Transaction?'),
+        content: const Text(
+          'This will initiate an emergency key-path spend to move your funds '
+          'back to safety. You will need your hardware wallet to sign.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _acknowledge(ref);
+              context.go('/spend/${alert.vaultId}');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel Transaction'),
+          ),
+        ],
       ),
     );
   }
