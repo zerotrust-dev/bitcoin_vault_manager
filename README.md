@@ -16,21 +16,23 @@ Freedom Wallet is built for Bitcoin holders who want robust self-custody without
 +-----------------------------------------------+
 |          Flutter App (Dart)                    |
 |  Cross-platform UI: Android, iOS, Desktop     |
-+----------------------+------------------------+
++-------+------------------+--------------------+
+        |                  |
+        | C ABI (JSON)     | HTTP (localhost)
+        |                  |
++-------v--------+  +------v-----------------+
+| vault-core     |  | Trezor Bridge          |
+| (Rust Library) |  | (Hardware Wallet API)  |
++----------------+  +------------------------+
                        |
-                       | C ABI (JSON strings)
-                       |
-+----------------------v------------------------+
-|          vault-core (Rust Library)             |
-|  Taproot, PSBT, key derivation, metadata      |
-+----------------------+------------------------+
-                       |
-                       | Electrum protocol
-                       |
-+----------------------v------------------------+
-|          vault-watcher (FastAPI)               |
-|  Blockchain monitoring, push notifications    |
-+-----------------------------------------------+
+        +--------------+
+        | REST API
+        |
++-------v-----------------------------+
+|     Esplora API (Blockchain)        |
+|  UTXO queries, fee estimates,       |
+|  transaction broadcast, monitoring  |
++-------------------------------------+
 ```
 
 ## Key Features
@@ -40,7 +42,7 @@ Freedom Wallet is built for Bitcoin holders who want robust self-custody without
 - **Blockchain-encoded metadata** — Vault configuration stored in a Taproot script leaf; seed phrase alone enables full recovery
 - **Vault templates** — Savings (1008-block delay), Spending (144-block delay), or Custom configurations
 - **Sweep-only transactions** — No change outputs, eliminating an entire class of complexity
-- **Active monitoring** — Watcher service detects on-chain activity and sends push notifications
+- **Active monitoring** — Esplora-based polling detects on-chain activity and generates alerts
 - **Deterministic recovery** — Reconstruct all vaults from seed phrase + blockchain scan in under 2 minutes
 - **Cross-platform** — Single Flutter codebase for Android, iOS, Windows, macOS, and Linux
 
@@ -50,11 +52,11 @@ Freedom Wallet is built for Bitcoin holders who want robust self-custody without
 |-------|-----------|---------|
 | Cryptographic Core | Rust | All Bitcoin operations via native library |
 | UI Application | Flutter (Dart) | Cross-platform frontend |
-| Watcher Backend | Python / FastAPI | Blockchain monitoring and alerts |
+| Blockchain API | Esplora REST API | UTXO queries, fee estimates, broadcast |
 | Bitcoin Libraries | BDK 0.30, rust-bitcoin 0.30, miniscript 10.0 | Taproot, PSBT, key handling |
 | Key Management | bip39 2.0, secp256k1 0.27 | Mnemonic and EC operations |
 | FFI Bridge | libc, dart:ffi | C ABI between Rust and Flutter |
-| Notifications | Firebase / FCM | Push alerts for vault activity |
+| Local Storage | flutter_secure_storage | Encrypted vault, device, and alert persistence |
 
 ## Project Structure
 
@@ -83,13 +85,15 @@ bitcoin_vault_manager/
 ├── freedom-wallet-app/         # Flutter application
 │   └── lib/
 │       ├── data/
-│       │   ├── datasources/    # Rust FFI bridge (Phase 2)
-│       │   ├── local/          # Secure local storage (Phase 2)
+│       │   ├── datasources/    # Rust FFI bridge + Esplora client
+│       │   ├── local/          # Secure local storage (vaults, devices, alerts)
 │       │   ├── mock/           # Mock services for development
-│       │   └── services/       # Real service implementations (Phase 2)
+│       │   └── services/       # Real service implementations
+│       │       └── device_drivers/  # Hardware wallet driver abstraction
 │       ├── domain/
-│       │   ├── interfaces/     # Service abstractions (Phase 2)
-│       │   └── models/         # Domain models
+│       │   ├── errors/         # Typed exceptions (device, blockchain)
+│       │   ├── interfaces/     # Service abstractions
+│       │   └── models/         # Domain models (vault, utxo, recovery, etc.)
 │       └── presentation/       # Screens, widgets, providers
 └── README.md
 ```
@@ -113,7 +117,7 @@ This produces the native library (`vault_core.dll` / `libvault_core.so` / `libva
 
 ## Current Status
 
-**Phase:** Post-Phase 2 (Rust core fully integrated)
+**Phase:** Post-Phase 5 (Recovery system complete)
 
 ### Implemented
 
@@ -130,6 +134,24 @@ This produces the native library (`vault_core.dll` / `libvault_core.so` / `libva
   - Real Taproot address generation in onboarding flow
   - Local vault persistence via secure storage
   - Toggle between mock and real services for development
+- Hardware wallet integration (Phase 3, 20 tests):
+  - Trezor Bridge HTTP API communication
+  - DeviceDriver abstraction layer (ready for Ledger/Coldcard)
+  - xpub export, address display, PSBT signing via Trezor
+  - Encrypted device persistence and typed error handling
+- Blockchain integration (Phase 4, 18 tests):
+  - Esplora REST API client (mainnet, testnet, signet)
+  - WatcherService with 60-second polling for vault address activity
+  - AlertService with local persistence and action buttons (dismiss, view, cancel)
+  - Spend wizard auto-fetches UTXOs and fee estimates from blockchain
+  - Transaction broadcast through Esplora API
+  - Dashboard lifecycle-aware polling (start/stop on app resume/pause)
+- Recovery system (Phase 5, 10 tests):
+  - Blockchain scanning via deterministic address derivation (same xpub + index = same address)
+  - Gap limit scanning (20 consecutive empty indices) across savings and spending templates
+  - RecoveryService with Esplora integration and 100ms rate limiting
+  - Recovery wizard UI with 4 steps: Connect, Scan, Review, Confirm
+  - Edge cases: no vaults found, user cancellation, Esplora errors, duplicate prevention
 
 ### Roadmap
 
@@ -138,8 +160,8 @@ This produces the native library (`vault_core.dll` / `libvault_core.so` / `libva
 | Phase 1 | Flutter UI with mocks | **Complete** |
 | Phase 2 | Rust core integration (addresses, PSBT) | **Complete** |
 | Phase 3 | Hardware wallet integration (Trezor) | **Complete** |
-| Phase 4 | Watcher service | Not started |
-| Phase 5 | Recovery system | Not started |
+| Phase 4 | Blockchain integration (Esplora API) | **Complete** |
+| Phase 5 | Recovery system (blockchain scanning) | **Complete** |
 | Phase 6 | Polish and security audit | Not started |
 
 See [design/10_DEVELOPMENT_ROADMAP.md](design/10_DEVELOPMENT_ROADMAP.md) for the full 14-week plan.

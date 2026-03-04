@@ -11,5 +11,16 @@ abstract class VaultService {
     required Network network,
   });
   Future<void> simulateFunding(String vaultId, int amountSats);
+  Future<void> updateVaultBalance(String vaultId, int balanceSats);
+  Future<Vault> importRecoveredVault({
+    required String name,
+    required VaultTemplate template,
+    required String address,
+    required int balanceSats,
+    required int vaultIndex,
+    required DeviceRef primaryDevice,
+    DeviceRef? emergencyDevice,
+    required Network network,
+  });
   int get totalBalanceSats;
 }

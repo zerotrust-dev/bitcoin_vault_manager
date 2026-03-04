@@ -13,8 +13,8 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 | Phase 1 | 2 weeks | Foundation | Clickable prototype with mocks | **Complete** |
 | Phase 2 | 3 weeks | Core Integration | Rust FFI working, real addresses | **Complete** |
 | Phase 3 | 3 weeks | Hardware Wallet | Device pairing and signing | **Complete** |
-| Phase 4 | 2 weeks | Blockchain | Watcher integration, monitoring | Not started |
-| Phase 5 | 2 weeks | Recovery | Blockchain scanning, reconstruction | Not started |
+| Phase 4 | 2 weeks | Blockchain | Esplora integration, monitoring | **Complete** |
+| Phase 5 | 2 weeks | Recovery | Blockchain scanning, reconstruction | **Complete** |
 | Phase 6 | 2 weeks | Polish | Testing, UX refinement, security audit | Not started |
 
 **Total: ~14 weeks to production MVP**
@@ -154,62 +154,100 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 
 ---
 
-## Phase 4: Watcher Service (Weeks 9-10)
+## Phase 4: Blockchain Integration (Weeks 9-10) — COMPLETE
 
-**Goal:** Backend monitoring and notifications
+**Goal:** Direct blockchain monitoring and alerts via Esplora REST API (no backend server required)
 
-### Week 9: Watcher Backend
+**Implementation:** Esplora REST API with network-aware base URLs (mainnet=blockstream.info/api, testnet=blockstream.info/testnet/api, signet=mempool.space/signet/api). Polling-based monitoring with local alert persistence.
 
-- [ ] Initialize FastAPI project
-- [ ] Implement Electrum client
-- [ ] Build vault registration API
-- [ ] Add UTXO monitoring loop
-- [ ] Implement fee estimation endpoint
-- [ ] Create broadcast endpoint
+### Week 9: Esplora Client & Watcher
 
-### Week 10: Push Notifications
+- [x] Implement Esplora REST client (`EsploraClient`)
+- [x] Build UTXO query for vault addresses
+- [x] Implement fee estimation endpoint
+- [x] Create transaction broadcast endpoint
+- [x] Extract `WatcherService` interface + `EsploraWatcherService` real implementation
+- [x] Add `MockWatcherService` for development
+- [x] Wire spend wizard to auto-fetch UTXOs from blockchain (manual UTXO as collapsed fallback)
 
-- [ ] Set up Firebase project
-- [ ] Implement FCM notification service
-- [ ] Add alert triggering logic
-- [ ] Build deep link handling in Flutter
-- [ ] Create alert UI screens
-- [ ] Test notification flow end-to-end
+### Week 10: Alert System & Monitoring
+
+- [x] Extract `AlertService` interface from `MockAlertService`
+- [x] Implement `BlockchainAlertService` with local persistence (`AlertStorage`)
+- [x] Build `VaultMonitorNotifier` with 60-second polling loop
+- [x] Generate alerts on balance changes (deposits, withdrawals, unauthorized spends)
+- [x] Wire alert action buttons: dismiss, view details, cancel transaction
+- [x] Add dashboard lifecycle-aware polling (start/stop on app resume/pause via `WidgetsBindingObserver`)
+- [x] Add typed error handling (`BlockchainException` hierarchy)
+- [x] Write 18 unit tests (`EsploraWatcherService`, `BlockchainAlertService`)
 
 ### Deliverables
-- Watcher running and monitoring vaults
-- Push notifications working
-- Flutter app receiving and displaying alerts
+- Direct Esplora API integration (no backend server needed)
+- Vault address monitoring with configurable polling interval
+- Local alert system with persistence and action buttons
+- Auto-UTXO fetching and fee estimates in spend wizard
+- Transaction broadcast through Esplora
+- 18 Phase 4 tests passing (38 total with Phase 3)
+
+### Key Files Added
+- `lib/data/datasources/esplora_client.dart` — Esplora REST API client
+- `lib/data/services/esplora_watcher_service.dart` — Real `WatcherService`
+- `lib/data/services/blockchain_alert_service.dart` — Real `AlertService` with persistence
+- `lib/data/mock/mock_watcher_service.dart` — Mock `WatcherService`
+- `lib/data/local/alert_storage.dart` — Local alert persistence
+- `lib/domain/interfaces/watcher_service.dart` — Watcher interface
+- `lib/domain/interfaces/alert_service.dart` — Alert interface
+- `lib/domain/errors/blockchain_errors.dart` — Typed exception hierarchy
+- `lib/domain/models/utxo.dart` — UTXO and FeeEstimates models
+- `lib/presentation/providers/watcher_provider.dart` — VaultMonitorNotifier
 
 ---
 
-## Phase 5: Recovery (Weeks 11-12)
+## Phase 5: Recovery (Weeks 11-12) — COMPLETE
 
 **Goal:** Complete blockchain-based recovery
 
+**Implementation:** Composes existing Rust FFI functions (`generateVaultAddress` + `getUtxos`) in a scanning loop — no new FFI functions needed. Deterministic address derivation (same xpub + index = same address) with gap limit scanning via Esplora API.
+
 ### Week 11: Blockchain Scanning
 
-- [ ] Implement address derivation for scanning
-- [ ] Build blockchain query batching
-- [ ] Add UTXO detection logic
-- [ ] Implement metadata extraction
-- [ ] Create vault reconstruction
+- [x] Implement address derivation for scanning (reuses `generateVaultAddress` via Rust FFI)
+- [x] Build blockchain query with rate limiting (100ms delay between Esplora requests)
+- [x] Add UTXO detection logic (per-address via Esplora `getUtxos`)
+- [x] Implement gap limit scanning (GAP_LIMIT=20 consecutive empty indices)
+- [x] Create vault reconstruction (`importRecoveredVault` on `VaultService`)
 
 ### Week 12: Recovery UX
 
-- [ ] Build recovery wizard UI
-- [ ] Add scanning progress indicators
-- [ ] Implement vault verification display
-- [ ] Handle edge cases:
-  - [ ] No vaults found
-  - [ ] Partial recovery
-  - [ ] Multiple vaults
-- [ ] Write integration tests for recovery
+- [x] Build recovery wizard UI (ConsumerStatefulWidget with 4 steps: Connect → Scan → Review → Confirm)
+- [x] Add scanning progress indicators (`RecoveryNotifier`: idle → scanning → reviewing → confirming → complete)
+- [x] Implement vault verification display (review step with discovered vaults)
+- [x] Handle edge cases:
+  - [x] No vaults found
+  - [x] User cancellation
+  - [x] Esplora errors
+  - [x] Duplicate prevention
+- [x] Write 10 unit tests for recovery (48 total with Phases 3-4)
 
 ### Deliverables
-- Full recovery working from seed phrase
-- Recovery taking < 2 minutes
-- All edge cases handled gracefully
+- Full recovery from seed phrase via blockchain scanning
+- Recovery uses deterministic address derivation (same xpub + index = same address)
+- Scanning completes in seconds (GAP_LIMIT=20, 2 templates = ~40 requests with 100ms delay)
+- Edge cases handled: no vaults found, user cancellation, Esplora errors, duplicate prevention
+- 10 Phase 5 tests passing (48 total with Phases 3-4)
+
+### Key Files Added
+- `lib/domain/models/recovery.dart` — RecoveredVault, RecoveryProgress, RecoveryResult models
+- `lib/domain/interfaces/recovery_service.dart` — Abstract recovery interface
+- `lib/data/services/recovery_service_impl.dart` — Core scanning logic (gap limit, rate limiting)
+- `lib/data/mock/mock_recovery_service.dart` — Mock for development
+- `lib/presentation/providers/recovery_provider.dart` — RecoveryNotifier state management
+
+### Key Files Modified
+- `lib/domain/interfaces/vault_service.dart` — Added `importRecoveredVault` method
+- `lib/data/services/rust_vault_service.dart` — Implemented `importRecoveredVault`, made `templateToRustJson` public
+- `lib/data/mock/mock_vault_service.dart` — Implemented `importRecoveredVault`
+- `lib/presentation/features/backup/recovery_wizard_screen.dart` — Full rewrite with real Riverpod-driven UI
 
 ---
 
@@ -292,13 +330,13 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 - Fallback to manual descriptor import
 - Regular recovery testing
 
-### Low Risk: Watcher Availability
+### Low Risk: Esplora API Availability
 
-**Risk:** Watcher service downtime
+**Risk:** Esplora endpoint downtime
 **Mitigation:**
-- Support self-hosted watcher
-- Local monitoring fallback
-- Multiple watcher endpoints
+- Network-aware base URLs with multiple providers
+- Local monitoring with configurable polling interval
+- Graceful degradation when API unreachable
 
 ---
 
@@ -310,16 +348,17 @@ This document outlines the phased implementation plan for Freedom Wallet, from M
 |------|-------|-------|
 | Flutter Developer | 1-2 | App UI/UX |
 | Rust Developer | 1 | Core library |
-| Backend Developer | 1 | Watcher service |
+| Backend Developer | 0-1 | Optional (Esplora API used directly) |
 | Security Reviewer | 1 | Audit & testing |
 
 ### Solo Developer Path
 
 If building alone:
-1. Phase 1-2: Focus on Flutter + Rust core
-2. Phase 3: Use existing HWI tooling
-3. Phase 4: Minimal watcher, expand later
-4. Phase 5-6: Get community security review
+1. Phase 1-2: Focus on Flutter + Rust core (done)
+2. Phase 3: Use existing HWI tooling (done — Trezor Bridge)
+3. Phase 4: Direct Esplora API, no backend server (done)
+4. Phase 5: Compose existing FFI for recovery scanning (done)
+5. Phase 6: Get community security review
 
 ---
 

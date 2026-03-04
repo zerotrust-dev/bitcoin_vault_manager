@@ -44,7 +44,7 @@ class RustVaultService implements VaultService {
     await _ensureLoaded();
 
     // Convert Dart template to Rust-compatible JSON
-    final rustTemplate = _templateToRustJson(template);
+    final rustTemplate = templateToRustJson(template);
     final networkInt = network.index;
 
     // Call Rust core to generate a real Taproot address
@@ -96,6 +96,61 @@ class RustVaultService implements VaultService {
   }
 
   @override
+  Future<void> updateVaultBalance(String vaultId, int balanceSats) async {
+    await _ensureLoaded();
+    _vaults = _vaults.map((v) {
+      if (v.id == vaultId) {
+        final newStatus =
+            balanceSats > 0 ? VaultStatus.active : VaultStatus.empty;
+        return v.copyWith(
+          balanceSats: balanceSats,
+          status: newStatus,
+          lastActivityAt: DateTime.now(),
+        );
+      }
+      return v;
+    }).toList();
+    await _storage.saveVaults(_vaults);
+  }
+
+  @override
+  Future<Vault> importRecoveredVault({
+    required String name,
+    required VaultTemplate template,
+    required String address,
+    required int balanceSats,
+    required int vaultIndex,
+    required DeviceRef primaryDevice,
+    DeviceRef? emergencyDevice,
+    required Network network,
+  }) async {
+    await _ensureLoaded();
+
+    final vault = Vault(
+      id: 'vault-${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      template: template,
+      balanceSats: balanceSats,
+      address: address,
+      descriptor:
+          'tr(${primaryDevice.fingerprint}/86h/${network.index}h/0h/0/$vaultIndex)',
+      status: balanceSats > 0 ? VaultStatus.active : VaultStatus.empty,
+      primaryDevice: primaryDevice,
+      emergencyDevice: emergencyDevice,
+      network: network,
+      createdAt: DateTime.now(),
+    );
+
+    _vaults = [..._vaults, vault];
+    if (vaultIndex >= _nextVaultIndex) {
+      _nextVaultIndex = vaultIndex + 1;
+    }
+    await _storage.saveVaults(_vaults);
+    await _storage.saveNextVaultIndex(_nextVaultIndex);
+    return vault;
+  }
+
+  @override
   int get totalBalanceSats =>
       _vaults.fold(0, (sum, v) => sum + v.balanceSats);
 
@@ -105,7 +160,7 @@ class RustVaultService implements VaultService {
   /// - `{"type":"savings"}` or `{"type":"savings","delay_blocks":1008}`
   /// - `{"type":"spending"}` or `{"type":"spending","delay_blocks":144}`
   /// - `{"type":"custom","delay_blocks":N,"recovery_type":"emergency_key"}`
-  static Map<String, dynamic> _templateToRustJson(VaultTemplate t) {
+  static Map<String, dynamic> templateToRustJson(VaultTemplate t) {
     final json = <String, dynamic>{'type': t.type};
     if (t.delayBlocks != _defaultDelay(t.type)) {
       json['delay_blocks'] = t.delayBlocks;

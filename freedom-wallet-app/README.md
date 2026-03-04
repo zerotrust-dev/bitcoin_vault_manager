@@ -12,10 +12,10 @@ Freedom Wallet solves three fears for Bitcoin holders:
 ## Architecture
 
 ```
-Flutter App (UI/UX)  -->  Rust Core (via FFI)  -->  Bitcoin Network
+Flutter App (UI/UX)  -->  Rust Core (via FFI)  -->  Esplora REST API  -->  Bitcoin Network
          |                                              |
          v                                              v
-  Hardware Wallet  <-- Trezor Bridge HTTP API     Watcher Service
+  Hardware Wallet  <-- Trezor Bridge HTTP API     UTXO monitoring, fee estimates, broadcast
 ```
 
 - **vault-core/** - Rust library: key derivation, Taproot addresses, PSBT construction (14 FFI exports, 37 tests)
@@ -70,18 +70,21 @@ Toggle between mock and real hardware wallet services via the `useMocks` constan
 ```
 lib/
   data/
-    datasources/        # Rust FFI bridge
-    local/              # Encrypted storage (vaults, devices)
+    datasources/        # Rust FFI bridge + Esplora REST client
+    local/              # Encrypted storage (vaults, devices, alerts)
     mock/               # Mock services for UI development
     services/
       device_drivers/   # Hardware wallet driver abstraction
       hardware_device_service.dart
       rust_vault_service.dart
       trezor_bridge_service.dart
+      esplora_watcher_service.dart
+      blockchain_alert_service.dart
+      recovery_service_impl.dart
   domain/
-    errors/             # Typed device exceptions
+    errors/             # Typed exceptions (device, blockchain)
     interfaces/         # Service contracts
-    models/             # Data models
+    models/             # Data models (vault, utxo, fee estimates, recovery)
   presentation/
     common/widgets/     # Shared UI components
     features/           # Screen implementations
@@ -91,11 +94,19 @@ lib/
 ## Testing
 
 ```bash
-# Run all tests
+# Run all tests (48 total: 20 Phase 3 + 18 Phase 4 + 10 Phase 5)
 flutter test
 
 # Run Phase 3 hardware wallet tests
-flutter test test/data/services/
+flutter test test/data/services/trezor_bridge_client_test.dart
+flutter test test/data/services/hardware_device_service_test.dart
+
+# Run Phase 4 blockchain integration tests
+flutter test test/data/services/esplora_watcher_service_test.dart
+flutter test test/data/services/blockchain_alert_service_test.dart
+
+# Run Phase 5 recovery tests
+flutter test test/data/services/recovery_service_test.dart
 ```
 
 ## Development Phases
@@ -105,6 +116,6 @@ flutter test test/data/services/
 | Phase 1 | Complete | Flutter UI with mocks |
 | Phase 2 | Complete | Rust core + FFI bridge |
 | Phase 3 | Complete | Hardware wallet integration (Trezor) |
-| Phase 4 | Not started | Watcher service + blockchain monitoring |
-| Phase 5 | Not started | Recovery from blockchain |
+| Phase 4 | Complete | Blockchain integration (Esplora API) |
+| Phase 5 | Complete | Recovery from blockchain scanning |
 | Phase 6 | Not started | Polish + security audit |

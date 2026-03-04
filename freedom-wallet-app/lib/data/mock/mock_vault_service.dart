@@ -60,6 +60,52 @@ class MockVaultService implements VaultService {
   }
 
   @override
+  Future<void> updateVaultBalance(String vaultId, int balanceSats) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    _vaults = _vaults.map((v) {
+      if (v.id == vaultId) {
+        final newStatus =
+            balanceSats > 0 ? VaultStatus.active : VaultStatus.empty;
+        return v.copyWith(
+          balanceSats: balanceSats,
+          status: newStatus,
+          lastActivityAt: DateTime.now(),
+        );
+      }
+      return v;
+    }).toList();
+  }
+
+  @override
+  Future<Vault> importRecoveredVault({
+    required String name,
+    required VaultTemplate template,
+    required String address,
+    required int balanceSats,
+    required int vaultIndex,
+    required DeviceRef primaryDevice,
+    DeviceRef? emergencyDevice,
+    required Network network,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final vault = Vault(
+      id: 'vault-recovered-${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      template: template,
+      balanceSats: balanceSats,
+      address: address,
+      descriptor: 'tr(mock/86h/0h/0h/0/$vaultIndex)',
+      status: balanceSats > 0 ? VaultStatus.active : VaultStatus.empty,
+      primaryDevice: primaryDevice,
+      emergencyDevice: emergencyDevice,
+      network: network,
+      createdAt: DateTime.now(),
+    );
+    _vaults = [..._vaults, vault];
+    return vault;
+  }
+
+  @override
   int get totalBalanceSats =>
       _vaults.fold(0, (sum, v) => sum + v.balanceSats);
 }
